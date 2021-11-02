@@ -4,15 +4,14 @@
 
 O projeto consiste numa cortina inteligente controlada através do aplicativo (em desenvolvimento). 
 
-A cortina será capaz de medir a temperatura do ambiente que está instalada e se recolher ou se extender de acordo com as temperaturas definidas pelo usuário.
-
-O usuário também poderá definir horário de abertura e fechamento da cortina.
+A cortina será capaz de medir a luminosidade do ambiente e se recolher ou se extender de acordo com as configurações definidas pelo usuário.
 
 ## :computer: Desenvolvimento
-- [x] Captura de temperatura
+- [x] Captura de luminosidade
 - [ ] Controle do motor de passo
-- [ ] Configuração de WiFi
-- [ ] Configuração de MQTT-Broker
+- [ ] Configurações de controle
+- [x] Configuração de WiFi
+- [x] Configuração de MQTT-Broker
 
 ## 🤝 Colaboradores
 
