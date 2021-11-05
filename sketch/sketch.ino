@@ -12,7 +12,7 @@ const char* password = "c662de7ff6";
 PubSubClient client(espClient);
 const char* mqtt_server = "mqtt.eclipseprojects.io";
 const char* mqttTopic = "caikmoraes/luminosity";
-const char* mqttControlTopic = "caikmoraes/control";
+const char* mqttSubscribeTopic = "caikmoraes/control";
 const char* mqttClientId = "caikmoraes-mark1";
 
 // ---NODEMCU SETUP---
@@ -22,15 +22,15 @@ bool light = true;
 
 // ---STEPPER MOTOR---
 const int stepsPerRevolution = 500;
+const double volta = 2047;
+int currentState = 0;
+int oldState = 0;
 Stepper myStepper(stepsPerRevolution, D8,D6,D7,D5);
 
 // ---FUNCTIONS---
 
 void setup_wifi() {
-
-  delay(10);
-  // We start by connecting to a WiFi network
-  Serial.println();
+  
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
@@ -48,6 +48,7 @@ void setup_wifi() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+  delay(10);
 }
 
 void reconnect() {
@@ -55,37 +56,17 @@ void reconnect() {
   while (!client.connected()) {
     client.connect(mqttClientId);
   }
+  delay(10);
 }
 
 void callback(char* topic, byte* payload, unsigned int length) 
 {
-  
-  Serial.println("CHEGOU MENSAGEM NO TOPICO DE CONTROLE");
-  String currentTopic;
-  for(int i = 0; i < length; i++){
-    char c = (char)topic[i];
-    currentTopic += c;
-  }
-  if(currentTopic.equals(mqttControlTopic)){
-    String msg;
-    for(int i = 0; i < length; i++) 
-    {
-       char c = (char)payload[i];
-       msg += c;
-    }
-    
-    if (msg.equals("L"))
-    {
-      light = true;
-      Serial.println("Configuração LIGHT");
-    }
-    
-    if (msg.equals("D"))
-    {
-      light = false;     
-      Serial.println("Configuração DARK");
-    }
-  }
+  Serial.println("chegou mensagem");
+  String value = String((char*) payload);
+
+  Serial.print("COMANDO: ");
+  Serial.println(value);
+  delay(10);
 }
 
 void publishData(){
@@ -93,6 +74,7 @@ void publishData(){
   Serial.println(valorLuz);
   client.publish(mqttTopic, String(valorLuz).c_str(), true);
   Serial.println("Publicou mensagem");
+  delay(10);
 }
  
 void setup()
@@ -102,24 +84,49 @@ void setup()
      setup_wifi();
      client.setServer(mqtt_server, 1883);
      client.setCallback(callback);
+     client.subscribe(mqttSubscribeTopic);
      myStepper.setSpeed(60);
+}
+
+void openCurtain(){
+  for(int i = 0; i < 3; i++){
+    myStepper.step(volta/3);
+    delay(1);  
+  }
+}
+
+void closeCurtain(){
+  for(int i = 0; i < 3; i++){
+    myStepper.step(-volta/3);
+    delay(1);  
+  }
 }
  
 void loop()
 {
+  delay(10);
   if(!client.connected()){
     reconnect();
   }
   valorLuz = analogRead(pinoSensorLuz);
-  if(valorLuz < 1010)
+  if(valorLuz < 1000)
   {                
     digitalWrite(LED_BUILTIN, light);
+    currentState = 1;
+    if(oldState != currentState){
+      oldState = currentState;
+      openCurtain();
+    }
   }
   else
   {                    
     digitalWrite(LED_BUILTIN, !light);
+    currentState = 0;
+    if(oldState != currentState){
+      oldState = currentState;
+      closeCurtain();
+    }
   }
   publishData();
-  myStepper.step(2048);
   delay(1000);                   
 }
