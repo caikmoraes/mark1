@@ -10,10 +10,11 @@ const char* password = "c662de7ff6";
 
 // ---MQTT---
 PubSubClient client(espClient);
-const char* mqtt_server = "mqtt.eclipseprojects.io";
-const char* mqttTopic = "caikmoraes/luminosity";
-const char* mqttSubscribeTopic = "caikmoraes/control";
+const char* mqtt_server = "broker.mqtt-dashboard.com";
+const char* mqttPublishTopic = "caikmoraes/luminosity";
+const char* mqttSubscribeTopic = "caikmoraes/controller";
 const char* mqttClientId = "caikmoraes-mark1";
+
 
 // ---NODEMCU SETUP---
 int pinoSensorLuz = A0;               
@@ -25,9 +26,42 @@ const int stepsPerRevolution = 500;
 const double volta = 2047;
 int currentState = 0;
 int oldState = 0;
+bool manual = false;
 Stepper myStepper(stepsPerRevolution, D8,D6,D7,D5);
 
 // ---FUNCTIONS---
+
+void setup()
+{
+     Serial.begin(9600);
+     pinMode(LED_BUILTIN, OUTPUT);     
+     setup_wifi();
+     client.setServer(mqtt_server, 1883);
+     client.setCallback(callback);
+     myStepper.setSpeed(60);
+}
+
+void loop()
+{
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+  
+  valorLuz = analogRead(pinoSensorLuz);
+  if(valorLuz < 1000 && !manual)
+  {                
+    digitalWrite(LED_BUILTIN, light);
+    closeCurtain();
+  }
+  if(valorLuz >= 1000 && !manual)
+  {                    
+    digitalWrite(LED_BUILTIN, !light);
+    openCurtain();
+  }
+  publishData();
+  delay(1000);                   
+}
 
 void setup_wifi() {
   
@@ -54,79 +88,82 @@ void setup_wifi() {
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
-    client.connect(mqttClientId);
+    Serial.print("Attempting MQTT connection...");
+    // Create a random client ID
+    String clientId = "ESP8266Client-";
+    clientId += String(random(0xffff), HEX);
+    // Attempt to connect
+    if (client.connect(clientId.c_str())) {
+      Serial.println("connected");
+      // Once connected, publish an announcement...
+      // ... and resubscribe
+      client.subscribe(mqttSubscribeTopic);
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
   }
-  delay(10);
 }
 
 void callback(char* topic, byte* payload, unsigned int length) 
 {
-  Serial.println("chegou mensagem");
-  String value = String((char*) payload);
-
-  Serial.print("COMANDO: ");
-  Serial.println(value);
-  delay(10);
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+  
+  if ((char)payload[0] == '1' || (char)payload[0] == '0') {
+    String payloadMsg = String((char)payload[0]);
+    int msg = payloadMsg.toInt();
+    if(msg == 1 && currentState == 0) {
+      closeCurtain();
+      manual = true;
+    } else if(msg == 0 && currentState == 1) {
+      openCurtain();
+      manual = true;
+    }
+    
+  } else if((char)payload[0] == 'a') {
+    Serial.println("Automating");
+    manual = false;
+  } else {
+    Serial.println("Invalid command.");
+  }
 }
 
 void publishData(){
   Serial.print("Luminosidade: ");
   Serial.println(valorLuz);
-  client.publish(mqttTopic, String(valorLuz).c_str(), true);
-  Serial.println("Publicou mensagem");
+  client.publish(mqttPublishTopic, String(valorLuz).c_str(), true);
   delay(10);
-}
- 
-void setup()
-{
-     Serial.begin(9600);
-     pinMode(LED_BUILTIN, OUTPUT);     
-     setup_wifi();
-     client.setServer(mqtt_server, 1883);
-     client.setCallback(callback);
-     client.subscribe(mqttSubscribeTopic);
-     myStepper.setSpeed(60);
 }
 
 void openCurtain(){
-  for(int i = 0; i < 3; i++){
-    myStepper.step(volta/3);
-    delay(1);  
+  currentState = 0;
+  if(oldState != currentState){
+    oldState = currentState;
+    for(int i = 0; i < 3; i++){
+      myStepper.step(volta/3);
+      delay(1);  
+    }  
   }
+  
 }
 
 void closeCurtain(){
-  for(int i = 0; i < 3; i++){
-    myStepper.step(-volta/3);
-    delay(1);  
+  currentState = 1;
+  if(oldState != currentState){
+    oldState = currentState;
+    for(int i = 0; i < 3; i++){
+      myStepper.step(-volta/3);
+      delay(1);  
+    }
   }
 }
  
-void loop()
-{
-  delay(10);
-  if(!client.connected()){
-    reconnect();
-  }
-  valorLuz = analogRead(pinoSensorLuz);
-  if(valorLuz < 1000)
-  {                
-    digitalWrite(LED_BUILTIN, light);
-    currentState = 1;
-    if(oldState != currentState){
-      oldState = currentState;
-      openCurtain();
-    }
-  }
-  else
-  {                    
-    digitalWrite(LED_BUILTIN, !light);
-    currentState = 0;
-    if(oldState != currentState){
-      oldState = currentState;
-      closeCurtain();
-    }
-  }
-  publishData();
-  delay(1000);                   
-}
