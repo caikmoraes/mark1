@@ -126,10 +126,12 @@ void callback(char* topic, byte* payload, unsigned int length)
     String payloadMsg = String((char)payload[0]);
     int msg = payloadMsg.toInt();
     if(msg == 1 && currentState == 0) {
+//    if(msg == 1) {
       closeCurtain();
       manual = true;
     } 
     else if(msg == 0 && currentState == 1) {
+//    else if(msg == 0) {
       openCurtain();
       manual = true;
     }
@@ -163,7 +165,6 @@ void openCurtain(){
       } 
     }  
   }
-  
 }
 
 void closeCurtain(){
