@@ -5,8 +5,10 @@
 
 // ---WIFI---
 WiFiClient espClient;
-const char* ssid = "VIVOFIBRA-7FF6";
-const char* password = "c662de7ff6";
+// const char* ssid = "VIVOFIBRA-7FF6";
+const char* ssid = "testeMark1";
+// const char* password = "c662de7ff6";
+const char* password = "para1234";
 
 // ---MQTT---
 PubSubClient client(espClient);
@@ -24,6 +26,8 @@ bool light = true;
 // ---STEPPER MOTOR---
 const int stepsPerRevolution = 500;
 const double volta = 2047;
+const int ciclo = 17;
+const int stepperSpeed = 60;
 int currentState = 0;
 int oldState = 0;
 bool manual = false;
@@ -38,7 +42,7 @@ void setup()
      setup_wifi();
      client.setServer(mqtt_server, 1883);
      client.setCallback(callback);
-     myStepper.setSpeed(60);
+     myStepper.setSpeed(stepperSpeed);
 }
 
 void loop()
@@ -82,7 +86,7 @@ void setup_wifi() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
-  delay(10);
+  delay(1000);
 }
 
 void reconnect() {
@@ -124,7 +128,8 @@ void callback(char* topic, byte* payload, unsigned int length)
     if(msg == 1 && currentState == 0) {
       closeCurtain();
       manual = true;
-    } else if(msg == 0 && currentState == 1) {
+    } 
+    else if(msg == 0 && currentState == 1) {
       openCurtain();
       manual = true;
     }
@@ -138,7 +143,7 @@ void callback(char* topic, byte* payload, unsigned int length)
 }
 
 void publishData(){
-  Serial.print("Luminosidade: ");
+  Serial.print("LUMINOSIDADE: ");
   Serial.println(valorLuz);
   client.publish(mqttPublishTopic, String(valorLuz).c_str(), true);
   delay(10);
@@ -148,9 +153,14 @@ void openCurtain(){
   currentState = 0;
   if(oldState != currentState){
     oldState = currentState;
-    for(int i = 0; i < 3; i++){
-      myStepper.step(volta/3);
-      delay(1);  
+    Serial.println("ABRINDO");
+    for(int j = 0; j < ciclo; j++) {
+      Serial.print("Volta ");
+      Serial.println(j + 1);
+      for(int i = 0; i < 3; i++){
+        myStepper.step(-volta/3);
+        delay(1);  
+      } 
     }  
   }
   
@@ -160,10 +170,15 @@ void closeCurtain(){
   currentState = 1;
   if(oldState != currentState){
     oldState = currentState;
-    for(int i = 0; i < 3; i++){
-      myStepper.step(-volta/3);
-      delay(1);  
-    }
+    Serial.println("FECHANDO");
+    for(int j = 0; j < ciclo; j++) {
+      Serial.print("Volta ");
+      Serial.println(j + 1);
+      for(int i = 0; i < 3; i++){
+        myStepper.step(volta/3);
+        delay(1);  
+      } 
+    }  
   }
 }
  
