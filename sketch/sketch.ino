@@ -5,9 +5,7 @@
 
 // ---WIFI---
 WiFiClient espClient;
-// const char* ssid = "VIVOFIBRA-7FF6";
 const char* ssid = "testeMark1";
-// const char* password = "c662de7ff6";
 const char* password = "para1234";
 
 // ---MQTT---
@@ -53,7 +51,7 @@ void loop()
   client.loop();
   
   valorLuz = analogRead(pinoSensorLuz);
-  if(valorLuz < 1000 && !manual)
+  if(valorLuz < 990 && !manual)
   {                
     digitalWrite(LED_BUILTIN, light);
     closeCurtain();
@@ -90,23 +88,17 @@ void setup_wifi() {
 }
 
 void reconnect() {
-  // Loop until we're reconnected
   while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
-    // Create a random client ID
+    Serial.print("Conectando...");
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
-    // Attempt to connect
     if (client.connect(clientId.c_str())) {
-      Serial.println("connected");
-      // Once connected, publish an announcement...
-      // ... and resubscribe
+      Serial.println("Conectado");
       client.subscribe(mqttSubscribeTopic);
     } else {
-      Serial.print("failed, rc=");
+      Serial.print("Falha de conexão, rc=");
       Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
+      Serial.println(" tentando novamente em 5 segundos");
       delay(5000);
     }
   }
@@ -114,33 +106,24 @@ void reconnect() {
 
 void callback(char* topic, byte* payload, unsigned int length) 
 {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
   
   if ((char)payload[0] == '1' || (char)payload[0] == '0') {
     String payloadMsg = String((char)payload[0]);
     int msg = payloadMsg.toInt();
     if(msg == 1 && currentState == 0) {
-//    if(msg == 1) {
       closeCurtain();
       manual = true;
     } 
     else if(msg == 0 && currentState == 1) {
-//    else if(msg == 0) {
       openCurtain();
       manual = true;
     }
     
   } else if((char)payload[0] == 'a') {
-    Serial.println("Automating");
+    Serial.println("Automatizando");
     manual = false;
   } else {
-    Serial.println("Invalid command.");
+    Serial.println("Comando invalido.");
   }
 }
 
@@ -155,7 +138,6 @@ void openCurtain(){
   currentState = 0;
   if(oldState != currentState){
     oldState = currentState;
-    Serial.println("ABRINDO");
     for(int j = 0; j < ciclo; j++) {
       Serial.print("Volta ");
       Serial.println(j + 1);
@@ -171,7 +153,6 @@ void closeCurtain(){
   currentState = 1;
   if(oldState != currentState){
     oldState = currentState;
-    Serial.println("FECHANDO");
     for(int j = 0; j < ciclo; j++) {
       Serial.print("Volta ");
       Serial.println(j + 1);

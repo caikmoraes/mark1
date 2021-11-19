@@ -8,8 +8,8 @@ A cortina será capaz de medir a luminosidade do ambiente e se recolher ou se ex
 
 ## :computer: Desenvolvimento
 - [x] Captura de luminosidade
-- [ ] Controle do motor de passo
-- [ ] Configurações de controle
+- [x] Controle do motor de passo
+- [x] Configurações de controle
 - [x] Configuração de WiFi
 - [x] Configuração de MQTT-Broker
 
